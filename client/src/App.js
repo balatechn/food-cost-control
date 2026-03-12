@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/layout/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
@@ -13,6 +14,8 @@ import ReportsPage from './pages/ReportsPage';
 import WastePage from './pages/WastePage';
 import MenuEngineeringPage from './pages/MenuEngineeringPage';
 import SuppliersPage from './pages/SuppliersPage';
+import UsersPage from './pages/UsersPage';
+import HelpPage from './pages/HelpPage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -39,6 +42,8 @@ function AppRoutes() {
         <Route path="waste" element={<WastePage />} />
         <Route path="menu-engineering" element={<MenuEngineeringPage />} />
         <Route path="suppliers" element={<SuppliersPage />} />
+        <Route path="users" element={<UsersPage />} />
+        <Route path="help" element={<HelpPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -48,9 +53,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <Router>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

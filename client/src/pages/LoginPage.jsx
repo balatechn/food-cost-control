@@ -36,13 +36,13 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Username</label>
+              <label className="label">Username or Email</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="input-field"
-                placeholder="Enter username"
+                placeholder="Enter username or email"
                 required
                 autoComplete="username"
               />
@@ -64,14 +64,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs font-medium text-gray-500 mb-2">Demo Credentials:</p>
-            <div className="text-xs text-gray-600 space-y-1">
-              <p><span className="font-semibold">Admin:</span> admin / admin123</p>
-              <p><span className="font-semibold">Controller:</span> controller / admin123</p>
-              <p><span className="font-semibold">Store Mgr:</span> store_mgr / admin123</p>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

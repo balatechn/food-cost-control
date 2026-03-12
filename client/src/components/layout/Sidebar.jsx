@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import {
   HiOutlineChartPie,
   HiOutlineCube,
@@ -16,6 +17,10 @@ import {
   HiOutlineMenu,
   HiOutlineX,
   HiOutlineTruck,
+  HiOutlineUserGroup,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineSun,
+  HiOutlineMoon,
 } from 'react-icons/hi';
 
 const navItems = [
@@ -29,10 +34,13 @@ const navItems = [
   { to: '/waste', icon: HiOutlineTrash, label: 'Waste Tracking' },
   { to: '/menu-engineering', icon: HiOutlineStar, label: 'Menu Engineering' },
   { to: '/suppliers', icon: HiOutlineTruck, label: 'Suppliers' },
+  { to: '/users', icon: HiOutlineUserGroup, label: 'Users' },
+  { to: '/help', icon: HiOutlineQuestionMarkCircle, label: 'Help & SOP' },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { dark, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const linkClass = ({ isActive }) =>
@@ -70,6 +78,13 @@ export default function Sidebar() {
             <p className="text-xs text-gray-400 capitalize">{user?.role?.replace('_', ' ')}</p>
           </div>
         </div>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors w-full"
+        >
+          {dark ? <HiOutlineSun className="w-5 h-5" /> : <HiOutlineMoon className="w-5 h-5" />}
+          {dark ? 'Light Mode' : 'Dark Mode'}
+        </button>
         <button
           onClick={logout}
           className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors w-full mt-2"

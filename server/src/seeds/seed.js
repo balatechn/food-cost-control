@@ -7,14 +7,15 @@ async function seed() {
     await client.query('BEGIN');
 
     // Seed Users
-    const passwordHash = await bcrypt.hash('admin123', 10);
+    const adminHash = await bcrypt.hash('Nzt@2026!!', 10);
+    const defaultHash = await bcrypt.hash('admin123', 10);
     await client.query(`
       INSERT INTO users (username, email, password_hash, full_name, role) VALUES
-      ('admin', 'admin@foodcontrol.com', $1, 'System Admin', 'admin'),
-      ('controller', 'controller@foodcontrol.com', $1, 'F&B Controller', 'controller'),
-      ('store_mgr', 'store@foodcontrol.com', $1, 'Store Manager', 'store_manager')
+      ('bala', 'bala.techn@gmail.com', $1, 'Bala - Super Admin', 'admin'),
+      ('controller', 'controller@foodcontrol.com', $2, 'F&B Controller', 'controller'),
+      ('store_mgr', 'store@foodcontrol.com', $2, 'Store Manager', 'store_manager')
       ON CONFLICT (username) DO NOTHING;
-    `, [passwordHash]);
+    `, [adminHash, defaultHash]);
 
     // Seed Suppliers
     await client.query(`

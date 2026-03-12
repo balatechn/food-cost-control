@@ -15,6 +15,7 @@ const reportRoutes = require('./routes/reports');
 const wasteRoutes = require('./routes/waste');
 const menuEngineeringRoutes = require('./routes/menuEngineering');
 const supplierRoutes = require('./routes/suppliers');
+const userRoutes = require('./routes/users');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/waste', wasteRoutes);
 app.use('/api/menu-engineering', menuEngineeringRoutes);
 app.use('/api/suppliers', supplierRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
