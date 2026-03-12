@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import API from '../../services/api';
-import KPICard from '../common/KPICard';
-import PageHeader from '../common/PageHeader';
-import LoadingSpinner from '../common/LoadingSpinner';
-import { formatCurrency, formatPercent, formatDate } from '../../utils/helpers';
+import API from '../services/api';
+import KPICard from '../components/common/KPICard';
+import PageHeader from '../components/common/PageHeader';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import { formatCurrency, formatPercent, formatDate } from '../utils/helpers';
 import {
   HiOutlineCurrencyDollar,
   HiOutlineCalculator,

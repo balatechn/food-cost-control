@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import API from '../../services/api';
-import PageHeader from '../common/PageHeader';
-import LoadingSpinner from '../common/LoadingSpinner';
-import Modal from '../common/Modal';
-import { formatCurrency, getCategoryLabel } from '../../utils/helpers';
+import API from '../services/api';
+import PageHeader from '../components/common/PageHeader';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import Modal from '../components/common/Modal';
+import { formatCurrency, getCategoryLabel } from '../utils/helpers';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineExclamation } from 'react-icons/hi';
 

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import API from '../../services/api';
-import PageHeader from '../common/PageHeader';
-import LoadingSpinner from '../common/LoadingSpinner';
-import KPICard from '../common/KPICard';
-import { formatCurrency, formatPercent, formatNumber, downloadCSV } from '../../utils/helpers';
+import API from '../services/api';
+import PageHeader from '../components/common/PageHeader';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import KPICard from '../components/common/KPICard';
+import { formatCurrency, formatPercent, formatNumber, downloadCSV } from '../utils/helpers';
 import { HiOutlineScale, HiOutlineDownload } from 'react-icons/hi';
 
 export default function VariancePage() {

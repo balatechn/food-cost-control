@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import API from '../../services/api';
-import PageHeader from '../common/PageHeader';
-import LoadingSpinner from '../common/LoadingSpinner';
-import { formatCurrency, formatPercent, formatDate, downloadCSV, getCategoryLabel } from '../../utils/helpers';
+import API from '../services/api';
+import PageHeader from '../components/common/PageHeader';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import { formatCurrency, formatPercent, formatDate, downloadCSV, getCategoryLabel } from '../utils/helpers';
 import { HiOutlineDownload } from 'react-icons/hi';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend, Filler,
