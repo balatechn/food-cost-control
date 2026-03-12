@@ -1,0 +1,56 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Layout from './components/layout/Layout';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import InventoryPage from './pages/InventoryPage';
+import RecipesPage from './pages/RecipesPage';
+import SalesPage from './pages/SalesPage';
+import FoodCostPage from './pages/FoodCostPage';
+import VariancePage from './pages/VariancePage';
+import ReportsPage from './pages/ReportsPage';
+import WastePage from './pages/WastePage';
+import MenuEngineeringPage from './pages/MenuEngineeringPage';
+import SuppliersPage from './pages/SuppliersPage';
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function PublicRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/" replace /> : children;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route index element={<DashboardPage />} />
+        <Route path="inventory" element={<InventoryPage />} />
+        <Route path="recipes" element={<RecipesPage />} />
+        <Route path="sales" element={<SalesPage />} />
+        <Route path="food-cost" element={<FoodCostPage />} />
+        <Route path="variance" element={<VariancePage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="waste" element={<WastePage />} />
+        <Route path="menu-engineering" element={<MenuEngineeringPage />} />
+        <Route path="suppliers" element={<SuppliersPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </Router>
+  );
+}
