@@ -13,11 +13,7 @@
     }
   ],
   "env": {
-    "DB_HOST": "@db-host",
-    "DB_PORT": "@db-port",
-    "DB_NAME": "@db-name",
-    "DB_USER": "@db-user",
-    "DB_PASSWORD": "@db-password",
+    "DATABASE_URL": "@database-url",
     "JWT_SECRET": "@jwt-secret",
     "JWT_EXPIRES_IN": "24h",
     "NODE_ENV": "production",

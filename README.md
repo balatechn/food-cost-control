@@ -184,11 +184,7 @@ git push -u origin main
 
 | Variable | Value |
 |----------|-------|
-| `DB_HOST` | Your cloud Postgres host (e.g. Neon, Supabase) |
-| `DB_PORT` | `5432` |
-| `DB_NAME` | `foodcontrol` |
-| `DB_USER` | Your DB user |
-| `DB_PASSWORD` | Your DB password |
+| `DATABASE_URL` | Neon connection string (see step 4 below) |
 | `JWT_SECRET` | A strong random string (32+ chars) |
 | `JWT_EXPIRES_IN` | `24h` |
 | `NODE_ENV` | `production` |
@@ -209,21 +205,22 @@ git push -u origin main
 
 5. Deploy. Update the backend's `CLIENT_URL` env var to match this frontend URL.
 
-### 4. Cloud Database Setup
+### 4. Neon Database Setup
 
-Use a free managed PostgreSQL provider:
-
-- **[Neon](https://neon.tech)** — Free tier, serverless Postgres
-- **[Supabase](https://supabase.com)** — Free tier with 500 MB
-- **[Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres)** — Built-in
-
-After creating the database, run migrations:
-```bash
-# Set cloud DB credentials in your local .env, then:
-cd server
-npm run migrate
-npm run seed
-```
+1. Sign up at **[neon.tech](https://neon.tech)** (free tier — 0.5 GB storage, always-on compute).
+2. Create a new project → name it `foodcontrol`.
+3. Copy the **Connection string** from the dashboard. It looks like:
+   ```
+   postgresql://user:pass@ep-xxxxx.us-east-2.aws.neon.tech/foodcontrol?sslmode=require
+   ```
+4. Paste it as the `DATABASE_URL` environment variable in both Vercel projects and your local `.env`.
+5. Run migrations and seed against Neon:
+   ```bash
+   # Add DATABASE_URL to server/.env, then:
+   cd server
+   npm run migrate
+   npm run seed
+   ```
 
 ### 5. CI/CD
 
