@@ -163,6 +163,78 @@ Open **http://localhost:3000** in your browser.
 
 ---
 
+## Production Deployment (GitHub + Vercel)
+
+This project is configured for split deployment on **Vercel** — the backend (serverless Node.js) and frontend (React static build) are deployed as two separate Vercel projects.
+
+### 1. Push to GitHub
+
+```bash
+# Create a repo on GitHub, then:
+git remote add origin https://github.com/YOUR_USERNAME/food-cost-control.git
+git branch -M main
+git push -u origin main
+```
+
+### 2. Deploy Backend (Vercel)
+
+1. Go to [vercel.com/new](https://vercel.com/new) → Import your repo.
+2. Set **Root Directory** to `server`.
+3. Add Environment Variables in Vercel dashboard:
+
+| Variable | Value |
+|----------|-------|
+| `DB_HOST` | Your cloud Postgres host (e.g. Neon, Supabase) |
+| `DB_PORT` | `5432` |
+| `DB_NAME` | `foodcontrol` |
+| `DB_USER` | Your DB user |
+| `DB_PASSWORD` | Your DB password |
+| `JWT_SECRET` | A strong random string (32+ chars) |
+| `JWT_EXPIRES_IN` | `24h` |
+| `NODE_ENV` | `production` |
+| `CLIENT_URL` | `https://your-frontend.vercel.app` |
+
+4. Deploy. Note the URL (e.g. `https://food-cost-api.vercel.app`).
+
+### 3. Deploy Frontend (Vercel)
+
+1. Go to [vercel.com/new](https://vercel.com/new) → Import the **same repo** again.
+2. Set **Root Directory** to `client`.
+3. Framework Preset: **Create React App**.
+4. Add Environment Variable:
+
+| Variable | Value |
+|----------|-------|
+| `REACT_APP_API_URL` | `https://food-cost-api.vercel.app/api` |
+
+5. Deploy. Update the backend's `CLIENT_URL` env var to match this frontend URL.
+
+### 4. Cloud Database Setup
+
+Use a free managed PostgreSQL provider:
+
+- **[Neon](https://neon.tech)** — Free tier, serverless Postgres
+- **[Supabase](https://supabase.com)** — Free tier with 500 MB
+- **[Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres)** — Built-in
+
+After creating the database, run migrations:
+```bash
+# Set cloud DB credentials in your local .env, then:
+cd server
+npm run migrate
+npm run seed
+```
+
+### 5. CI/CD
+
+A GitHub Actions workflow is included at `.github/workflows/ci.yml`. It runs on every push and PR to `main`:
+- **Server job**: Installs deps and verifies the server module loads without errors.
+- **Client job**: Installs deps and runs `npm run build` to catch compile-time issues.
+
+Vercel auto-deploys on every push to `main` once connected.
+
+---
+
 ## License
 
 MIT
