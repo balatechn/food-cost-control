@@ -31,9 +31,7 @@ exports.create = async (req, res) => {
 
     // Decrease stock
     await pool.query(
-      'UPDATE inventory_items SET current_stock = current_stock - $1
-
- WHERE id = $2',
+      'UPDATE inventory_items SET current_stock = current_stock - $1 WHERE id = $2',
       [quantity, item_id]
     );
 
