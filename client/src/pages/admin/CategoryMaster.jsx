@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import API from '../../services/api';
 import PageHeader from '../../components/common/PageHeader';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Modal from '../../components/common/Modal';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineDownload, HiOutlineUpload, HiOutlineExclamation } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const emptyForm = { name: '', description: '' };
@@ -14,6 +14,10 @@ export default function CategoryMaster() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [uploading, setUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState([]);
+  const fileInputRef = useRef(null);
 
   const fetchCategories = async () => {
     try {
@@ -61,14 +65,51 @@ export default function CategoryMaster() {
     }
   };
 
+  const downloadSample = async () => {
+    try {
+      const response = await API.get('/categories/sample-excel', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'categories_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch { toast.error('Failed to download sample file'); }
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.match(/\.xlsx?$/i)) { toast.error('Please upload an Excel file (.xlsx)'); return; }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await API.post('/categories/bulk-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.success(data.message);
+      if (data.errors?.length) { setShowUploadModal(true); setUploadErrors(data.errors); }
+      fetchCategories();
+    } catch (err) { toast.error(err.response?.data?.error || 'Upload failed'); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div>
       <PageHeader title="Category Master" subtitle={`${categories.length} categories`}>
-        <button className="btn-primary flex items-center gap-2" onClick={openAdd}>
-          <HiOutlinePlus className="w-4 h-4" /> Add Category
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={downloadSample} className="btn-secondary flex items-center gap-1 text-sm"><HiOutlineDownload className="w-4 h-4" />Sample Excel</button>
+          <label className={`btn-secondary flex items-center gap-1 text-sm cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            <HiOutlineUpload className="w-4 h-4" />{uploading ? 'Uploading...' : 'Bulk Upload'}
+            <input type="file" accept=".xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleBulkUpload} disabled={uploading} />
+          </label>
+          <button className="btn-primary flex items-center gap-2" onClick={openAdd}>
+            <HiOutlinePlus className="w-4 h-4" /> Add Category
+          </button>
+        </div>
       </PageHeader>
 
       <div className="card overflow-hidden">
@@ -130,6 +171,25 @@ export default function CategoryMaster() {
           </div>
         </form>
       </Modal>
+
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-lg w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full"><HiOutlineExclamation className="w-6 h-6 text-yellow-600" /></div>
+              <h3 className="text-lg font-semibold">Upload Warnings</h3>
+            </div>
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {uploadErrors.map((err, i) => (
+                <div key={i} className="text-sm bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 p-2 rounded">{err}</div>
+              ))}
+            </div>
+            <div className="flex justify-end mt-4">
+              <button className="btn-primary" onClick={() => setShowUploadModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

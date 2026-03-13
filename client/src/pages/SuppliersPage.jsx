@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import API from '../services/api';
 import PageHeader from '../components/common/PageHeader';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineDownload, HiOutlineUpload, HiOutlineExclamation } from 'react-icons/hi';
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
@@ -12,6 +12,10 @@ export default function SuppliersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', contact_person: '', phone: '', email: '', address: '' });
+  const [uploading, setUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => { loadSuppliers(); }, []);
 
@@ -54,15 +58,52 @@ export default function SuppliersPage() {
     setShowModal(true);
   };
 
+  const downloadSample = async () => {
+    try {
+      const response = await API.get('/suppliers/sample-excel', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'suppliers_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch { toast.error('Failed to download sample file'); }
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.match(/\.xlsx?$/i)) { toast.error('Please upload an Excel file (.xlsx)'); return; }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await API.post('/suppliers/bulk-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.success(data.message);
+      if (data.errors?.length) { setShowUploadModal(true); setUploadErrors(data.errors); }
+      loadSuppliers();
+    } catch (err) { toast.error(err.response?.data?.error || 'Upload failed'); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+  };
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="space-y-6 pt-8 lg:pt-0">
       <PageHeader title="Suppliers" subtitle={`${suppliers.length} suppliers`}
         action={
-          <button onClick={() => { setEditing(null); setForm({ name: '', contact_person: '', phone: '', email: '', address: '' }); setShowModal(true); }} className="btn-primary">
-            <HiOutlinePlus className="w-4 h-4 inline mr-1" />Add Supplier
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={downloadSample} className="btn-secondary flex items-center gap-1 text-sm"><HiOutlineDownload className="w-4 h-4" />Sample Excel</button>
+            <label className={`btn-secondary flex items-center gap-1 text-sm cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <HiOutlineUpload className="w-4 h-4" />{uploading ? 'Uploading...' : 'Bulk Upload'}
+              <input type="file" accept=".xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleBulkUpload} disabled={uploading} />
+            </label>
+            <button onClick={() => { setEditing(null); setForm({ name: '', contact_person: '', phone: '', email: '', address: '' }); setShowModal(true); }} className="btn-primary">
+              <HiOutlinePlus className="w-4 h-4 inline mr-1" />Add Supplier
+            </button>
+          </div>
         }
       />
 
@@ -102,6 +143,19 @@ export default function SuppliersPage() {
             <button type="submit" className="btn-primary">{editing ? 'Update' : 'Create'}</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={showUploadModal} onClose={() => { setShowUploadModal(false); setUploadErrors([]); }} title="Bulk Upload Warnings">
+        <div className="space-y-3 max-h-80 overflow-y-auto">
+          {uploadErrors.map((err, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+              <HiOutlineExclamation className="w-4 h-4 mt-0.5 flex-shrink-0" />{err}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end pt-4">
+          <button className="btn-primary" onClick={() => { setShowUploadModal(false); setUploadErrors([]); }}>OK</button>
+        </div>
       </Modal>
     </div>
   );
