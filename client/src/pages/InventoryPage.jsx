@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import API from '../services/api';
 import PageHeader from '../components/common/PageHeader';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Modal from '../components/common/Modal';
 import { formatCurrency, getCategoryLabel } from '../utils/helpers';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineExclamation } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineExclamation, HiOutlineDownload, HiOutlineUpload } from 'react-icons/hi';
 
 const CATEGORIES = ['meat','poultry','seafood','vegetables','fruits','dairy','beverages','dry_goods','spices','bakery','other'];
 
@@ -23,6 +23,9 @@ export default function InventoryPage() {
   const [purchaseForm, setPurchaseForm] = useState({ item_id: '', quantity: '', unit_cost: '', supplier_id: '', invoice_no: '' });
   const [issueForm, setIssueForm] = useState({ item_id: '', quantity: '', department: 'kitchen' });
   const [filter, setFilter] = useState({ category: '', search: '', low_stock: false });
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => { loadItems(); loadSuppliers(); }, []);
 
@@ -114,6 +117,50 @@ export default function InventoryPage() {
     setShowModal(true);
   };
 
+  const downloadSample = async () => {
+    try {
+      const response = await API.get('/inventory/sample-excel', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'inventory_sample_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch { toast.error('Failed to download sample file'); }
+  };
+
+  const handleBulkUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.match(/\.xlsx?$/i)) {
+      toast.error('Please upload an Excel file (.xlsx)');
+      return;
+    }
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await API.post('/inventory/bulk-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      toast.success(data.message);
+      if (data.errors?.length) {
+        setShowUploadModal(true);
+        setUploadErrors(data.errors);
+      }
+      loadItems();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Upload failed');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const [uploadErrors, setUploadErrors] = useState([]);
+
   if (loading) return <LoadingSpinner />;
 
   return (
@@ -123,6 +170,13 @@ export default function InventoryPage() {
         subtitle={`${items.length} items in stock`}
         action={
           <div className="flex gap-2 flex-wrap">
+            <button onClick={downloadSample} className="btn-secondary flex items-center gap-1 text-sm" title="Download sample Excel template">
+              <HiOutlineDownload className="w-4 h-4" />Sample Excel
+            </button>
+            <label className={`btn-secondary flex items-center gap-1 text-sm cursor-pointer ${uploading ? 'opacity-50 pointer-events-none' : ''}`} title="Bulk upload items from Excel">
+              <HiOutlineUpload className="w-4 h-4" />{uploading ? 'Uploading...' : 'Bulk Upload'}
+              <input type="file" accept=".xlsx,.xls" className="hidden" ref={fileInputRef} onChange={handleBulkUpload} disabled={uploading} />
+            </label>
             <button onClick={() => setShowPurchaseModal(true)} className="btn-success">+ Purchase</button>
             <button onClick={() => setShowIssueModal(true)} className="btn-secondary">Issue to Kitchen</button>
             <button onClick={() => { setEditing(null); setForm(emptyItem); setShowModal(true); }} className="btn-primary">
@@ -322,6 +376,21 @@ export default function InventoryPage() {
             <button type="submit" className="btn-primary">Issue Stock</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Bulk Upload Errors Modal */}
+      <Modal isOpen={showUploadModal} onClose={() => { setShowUploadModal(false); setUploadErrors([]); }} title="Bulk Upload Warnings">
+        <div className="space-y-3 max-h-80 overflow-y-auto">
+          {uploadErrors.map((err, i) => (
+            <div key={i} className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+              <HiOutlineExclamation className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              {err}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end pt-4">
+          <button className="btn-primary" onClick={() => { setShowUploadModal(false); setUploadErrors([]); }}>OK</button>
+        </div>
       </Modal>
     </div>
   );

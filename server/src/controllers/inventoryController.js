@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 const { validationResult } = require('express-validator');
+const XLSX = require('xlsx');
 
 exports.getAll = async (req, res) => {
   try {
@@ -192,5 +193,157 @@ exports.getTransactions = async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /api/inventory/sample-excel — download sample template
+exports.sampleExcel = async (req, res) => {
+  try {
+    // Fetch valid categories and units for reference sheet
+    const catRes = await pool.query('SELECT name FROM categories ORDER BY name');
+    const unitRes = await pool.query('SELECT name, abbreviation FROM units ORDER BY name');
+    const supRes = await pool.query('SELECT name FROM suppliers ORDER BY name');
+
+    const categories = catRes.rows.map(r => r.name);
+    const units = unitRes.rows.map(r => r.abbreviation || r.name);
+    const suppliers = supRes.rows.map(r => r.name);
+
+    // Main sheet with sample rows
+    const sampleData = [
+      { 'Item Name': 'Chicken Breast', Category: 'poultry', Unit: 'kg', 'Unit Cost': 8.50, 'Min Stock Level': 5, Supplier: '' },
+      { 'Item Name': 'Olive Oil', Category: 'dry_goods', Unit: 'L', 'Unit Cost': 12.00, 'Min Stock Level': 3, Supplier: '' },
+    ];
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 25 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 25 },
+    ];
+
+    // Reference sheet with valid values
+    const maxLen = Math.max(categories.length, units.length, suppliers.length);
+    const refData = [];
+    for (let i = 0; i < maxLen; i++) {
+      refData.push({
+        'Valid Categories': categories[i] || '',
+        'Valid Units': units[i] || '',
+        'Suppliers': suppliers[i] || '',
+      });
+    }
+    const wsRef = XLSX.utils.json_to_sheet(refData);
+    wsRef['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 25 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Items');
+    XLSX.utils.book_append_sheet(wb, wsRef, 'Reference');
+
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename="inventory_sample_template.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (err) {
+    console.error('sampleExcel error:', err);
+    res.status(500).json({ error: 'Failed to generate sample file' });
+  }
+};
+
+// POST /api/inventory/bulk-upload — import items from Excel
+exports.bulkUpload = async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  try {
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!rows.length) return res.status(400).json({ error: 'Excel file is empty' });
+
+    // Fetch valid categories, units, and suppliers for validation
+    const [catRes, unitRes, supRes] = await Promise.all([
+      pool.query('SELECT name FROM categories'),
+      pool.query('SELECT name, abbreviation FROM units'),
+      pool.query('SELECT id, name FROM suppliers'),
+    ]);
+    const validCategories = new Set(catRes.rows.map(r => r.name.toLowerCase()));
+    const validUnits = new Set(unitRes.rows.flatMap(r => [r.name.toLowerCase(), (r.abbreviation || '').toLowerCase()].filter(Boolean)));
+    const supplierMap = new Map(supRes.rows.map(r => [r.name.toLowerCase(), r.id]));
+
+    const results = { created: 0, updated: 0, errors: [] };
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNum = i + 2; // Excel row number (1-indexed + header)
+        const name = (row['Item Name'] || '').toString().trim();
+        const category = (row['Category'] || '').toString().trim().toLowerCase();
+        const unit = (row['Unit'] || '').toString().trim();
+        const unitCost = parseFloat(row['Unit Cost']) || 0;
+        const minStock = parseFloat(row['Min Stock Level']) || 0;
+        const supplierName = (row['Supplier'] || '').toString().trim();
+
+        // Validate required fields
+        if (!name) { results.errors.push(`Row ${rowNum}: Item Name is required`); continue; }
+        if (!category) { results.errors.push(`Row ${rowNum}: Category is required`); continue; }
+        if (!unit) { results.errors.push(`Row ${rowNum}: Unit is required`); continue; }
+
+        // Validate against master data
+        if (!validCategories.has(category)) {
+          results.errors.push(`Row ${rowNum}: Invalid category "${category}"`);
+          continue;
+        }
+        if (!validUnits.has(unit.toLowerCase())) {
+          results.errors.push(`Row ${rowNum}: Invalid unit "${unit}"`);
+          continue;
+        }
+
+        // Resolve supplier
+        let supplierId = null;
+        if (supplierName) {
+          supplierId = supplierMap.get(supplierName.toLowerCase()) || null;
+          if (!supplierId) {
+            results.errors.push(`Row ${rowNum}: Supplier "${supplierName}" not found (item still imported without supplier)`);
+          }
+        }
+
+        // Check if item already exists (by name) — update if so
+        const existing = await client.query('SELECT id FROM inventory_items WHERE LOWER(name) = LOWER($1)', [name]);
+
+        if (existing.rows.length > 0) {
+          await client.query(
+            'UPDATE inventory_items SET category=$1, unit=$2, unit_cost=$3, min_stock_level=$4, supplier_id=$5, updated_at=NOW() WHERE id=$6',
+            [category, unit, unitCost, minStock, supplierId, existing.rows[0].id]
+          );
+          results.updated++;
+        } else {
+          await client.query(
+            'INSERT INTO inventory_items (name, category, unit, unit_cost, current_stock, min_stock_level, supplier_id) VALUES ($1,$2,$3,$4,0,$5,$6)',
+            [name, category, unit, unitCost, minStock, supplierId]
+          );
+          results.created++;
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    res.json({
+      message: `Import complete: ${results.created} created, ${results.updated} updated` +
+        (results.errors.length ? `, ${results.errors.length} warning(s)` : ''),
+      created: results.created,
+      updated: results.updated,
+      errors: results.errors,
+    });
+  } catch (err) {
+    console.error('bulkUpload error:', err);
+    res.status(500).json({ error: 'Failed to process file: ' + err.message });
   }
 };
