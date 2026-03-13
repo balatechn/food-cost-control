@@ -21,6 +21,10 @@ import {
   HiOutlineQuestionMarkCircle,
   HiOutlineSun,
   HiOutlineMoon,
+  HiOutlineCollection,
+  HiOutlineTag,
+  HiOutlineViewGrid,
+  HiOutlineShieldCheck,
 } from 'react-icons/hi';
 
 const navItems = [
@@ -34,8 +38,14 @@ const navItems = [
   { to: '/waste', icon: HiOutlineTrash, label: 'Waste Tracking' },
   { to: '/menu-engineering', icon: HiOutlineStar, label: 'Menu Engineering' },
   { to: '/suppliers', icon: HiOutlineTruck, label: 'Suppliers' },
-  { to: '/users', icon: HiOutlineUserGroup, label: 'Users' },
   { to: '/help', icon: HiOutlineQuestionMarkCircle, label: 'Help & SOP' },
+];
+
+const adminItems = [
+  { to: '/admin/categories', icon: HiOutlineTag, label: 'Category Master' },
+  { to: '/admin/items', icon: HiOutlineCollection, label: 'Item Master' },
+  { to: '/admin/units', icon: HiOutlineViewGrid, label: 'Unit Master' },
+  { to: '/users', icon: HiOutlineUserGroup, label: 'Users' },
 ];
 
 export default function Sidebar() {
@@ -66,6 +76,23 @@ export default function Sidebar() {
             {label}
           </NavLink>
         ))}
+
+        {user?.role === 'admin' && (
+          <>
+            <div className="pt-4 pb-2 px-4">
+              <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 uppercase tracking-wider">
+                <HiOutlineShieldCheck className="w-4 h-4" />
+                Super Admin
+              </div>
+            </div>
+            {adminItems.map(({ to, icon: Icon, label }) => (
+              <NavLink key={to} to={to} className={linkClass} onClick={() => setMobileOpen(false)}>
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {label}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="px-3 py-4 border-t border-gray-700">

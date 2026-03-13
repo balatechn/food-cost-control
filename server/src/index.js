@@ -16,6 +16,8 @@ const wasteRoutes = require('./routes/waste');
 const menuEngineeringRoutes = require('./routes/menuEngineering');
 const supplierRoutes = require('./routes/suppliers');
 const userRoutes = require('./routes/users');
+const categoryRoutes = require('./routes/categories');
+const unitRoutes = require('./routes/units');
 
 const app = express();
 
@@ -38,6 +40,8 @@ app.use('/api/waste', wasteRoutes);
 app.use('/api/menu-engineering', menuEngineeringRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/units', unitRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

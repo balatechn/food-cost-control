@@ -16,10 +16,20 @@ import MenuEngineeringPage from './pages/MenuEngineeringPage';
 import SuppliersPage from './pages/SuppliersPage';
 import UsersPage from './pages/UsersPage';
 import HelpPage from './pages/HelpPage';
+import CategoryMaster from './pages/admin/CategoryMaster';
+import ItemMaster from './pages/admin/ItemMaster';
+import UnitMaster from './pages/admin/UnitMaster';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }) {
+  const { isAuthenticated, user } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'admin') return <Navigate to="/" replace />;
+  return children;
 }
 
 function PublicRoute({ children }) {
@@ -44,6 +54,9 @@ function AppRoutes() {
         <Route path="suppliers" element={<SuppliersPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="help" element={<HelpPage />} />
+        <Route path="admin/categories" element={<AdminRoute><CategoryMaster /></AdminRoute>} />
+        <Route path="admin/items" element={<AdminRoute><ItemMaster /></AdminRoute>} />
+        <Route path="admin/units" element={<AdminRoute><UnitMaster /></AdminRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
